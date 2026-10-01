@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>残薬レポート</title>
+<style>
+*{box-sizing:border-box}
+:root{
+  --ink:#18201d;--muted:#66706b;--paper:#f7f8f5;--card:#ffffff;
+  --line:#dfe4df;--accent:#176b52;--accent2:#e9f3ee;
+  --warning:#9a5d00;--warningbg:#fff5df;--danger:#a12d32;
+}
+html{font-size:18px}
+body{margin:0;background:var(--paper);color:var(--ink);
+font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
+line-height:1.65;-webkit-text-size-adjust:100%}
+header{background:var(--ink);color:#fff;padding:26px 20px 23px;border-bottom:5px solid var(--accent)}
+header h1{margin:0;font-size:28px;letter-spacing:.03em;font-weight:800}
+header p{margin:5px 0 0;color:#d7ded9;font-size:15px}
+main{max-width:760px;margin:auto;padding:18px 16px 40px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:20px;margin-bottom:16px;box-shadow:0 3px 14px #16231a0a}
+h2{font-size:21px;margin:0 0 14px;font-weight:800}
+h3{font-size:19px}
+.sub{font-size:14px;color:var(--muted)}
+.notice{font-size:14px;color:var(--muted);line-height:1.7;margin:12px 0 0}
+.btn{width:100%;min-height:58px;border:0;border-radius:14px;padding:14px 16px;font-size:18px;font-weight:800;
+background:var(--accent);color:#fff;margin-top:10px;box-shadow:0 2px 4px #00000012}
+.btn.secondary{background:#eef1ee;color:var(--ink);border:1px solid #d9dedb}
+.btn.danger{background:#fff1f1;color:var(--danger);border:1px solid #efd2d2}
+input,select,textarea{width:100%;min-height:52px;padding:11px 13px;border:2px solid #d7ddd8;border-radius:12px;
+font-size:18px;background:#fff;color:var(--ink)}
+input:focus,select:focus,textarea:focus{outline:3px solid #b9dfd0;border-color:var(--accent)}
+label{display:block;font-size:15px;font-weight:700;color:#4e5953;margin:13px 0 6px}
+#reader{width:100%;overflow:hidden;border-radius:16px}
+.hidden{display:none}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.drug{border:2px solid var(--line);border-radius:16px;padding:16px;margin:12px 0;background:#fff}
+.drugtop{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.drugname{font-size:19px;font-weight:800;line-height:1.4}
+.badge{font-size:13px;padding:5px 9px;border-radius:9px;white-space:nowrap;font-weight:800;background:#eef1ee}
+.warn{background:var(--warningbg);color:var(--warning)}
+.ok{background:var(--accent2);color:var(--accent)}
+.smallbtn{min-height:44px;border:1px solid #d5dad6;background:#f1f3f1;color:#303733;border-radius:10px;padding:8px 12px;font-size:15px;font-weight:700}
+.empty{text-align:center;color:#707a74;padding:24px 8px;font-size:16px}
+.report{border:2px solid var(--ink);border-radius:16px;padding:17px;background:#fff}
+.report h3{margin:0 0 8px;font-size:22px}
+.line{display:flex;justify-content:space-between;border-bottom:1px solid #e5e8e5;padding:12px 0;gap:12px;font-size:17px}
+.ocrbox{border:2px solid var(--line);border-radius:16px;padding:15px;background:#fafcf9}
+.ocrraw{white-space:pre-wrap;font-size:15px;line-height:1.6;background:#fff;border:1px solid #e0e4e1;border-radius:10px;padding:11px;max-height:180px;overflow:auto}
+.pill{display:inline-block;padding:5px 9px;border-radius:9px;background:#eef1ee;font-size:13px;margin:2px}
+.step{display:flex;gap:12px;align-items:center;margin-bottom:14px}
+.stepno{width:36px;height:36px;min-width:36px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:#fff;font-weight:800}
+.helper{background:#f1f6f3;border-radius:13px;padding:12px 14px;font-size:15px;margin:10px 0}
+video{max-height:55vh;object-fit:cover}
+@media(max-width:520px){
+ html{font-size:17px}header h1{font-size:25px}main{padding:13px 11px 30px}.card{padding:17px;border-radius:18px}
+ .row{grid-template-columns:1fr}.btn{min-height:60px;font-size:18px}
+}
+</style>
+</head>
+<body>
+<header><h1>💊 残薬レポート</h1><p>お薬手帳QRから薬剤を整理して、診察時に見せやすく</p></header>
+<main>
+<section class="card">
+<div class="step"><div class="stepno">1</div><div><h2 style="margin:0">お薬を登録する</h2><div class="sub">QRか、お薬手帳シールを使えます</div></div></div>
+<button class="btn" onclick="startQR()">📷 QRを読み取る</button>
+<div id="readerWrap" class="hidden" style="margin-top:12px">
+<div id="reader"></div>
+<div id="qrCount" class="helper">読み取ったQR：0個</div>
+<div class="helper"><b>📌 2枚以上ある場合</b><br>印刷物の<strong>左→右（上→下）</strong>の順に、QRを1枚ずつ読み取ってください。全部読み終えてから解析します。</div>
+<div id="qrDebug" class="ocrbox hidden" style="margin-top:10px">
+  <div style="font-weight:800;margin-bottom:7px">QRデータの確認</div>
+  <div id="qrDebugList" class="ocrraw"></div>
+  <div class="notice">※この画面では、QRを1枚ずつ受け取った順番で保存し、最後に連結してからお薬手帳データとして解析します。</div>
+</div>
+<button class="btn" onclick="finishQR()">✅ QRの読み取りを完了</button>
+<button class="btn secondary" onclick="stopQR()">閉じる</button>
+</div>
+<button class="btn secondary" onclick="startStickerCamera()">📸 シールをカメラで読み取る</button>
+<label class="btn secondary" style="display:block;text-align:center;cursor:pointer;margin-top:10px">
+  🖼️ 写真アプリの画像から読み取る
+  <input id="stickerFile" type="file" accept="image/*" style="display:none" onchange="readStickerFile(this)">
+</label>
+<div id="stickerWrap" class="hidden" style="margin-top:12px">
+  <video id="stickerVideo" autoplay playsinline style="width:100%;border-radius:14px;background:#111"></video>
+  <canvas id="stickerCanvas" class="hidden"></canvas>
+  <div class="row">
+    <button class="btn" onclick="captureSticker()">📸 撮影して解析</button>
+    <button class="btn secondary" onclick="stopStickerCamera()">閉じる</button>
+  </div>
+  <p class="notice">シール全体が明るくピントが合うように撮影してください。OCR結果は登録前に確認できます。</p>
+</div>
+<div id="ocrResult" class="hidden" style="margin-top:12px"></div>
+<button class="btn secondary" onclick="showManual()">✏️ 薬を手入力する</button>
+<div id="manual" class="hidden">
+<div class="helper">薬の名前が分からない場合は、薬袋やお薬手帳を見ながら入力してください。</div>
+<label>薬の名前</label><input id="mName" placeholder="例：アムロジピン錠5mg">
+<div class="row"><div><label>1回量</label><input id="mDose" placeholder="1錠"></div><div><label>1日回数</label><input id="mFreq" type="number" value="1" min="1"></div></div>
+<label>調剤日</label><input id="mDate" type="date">
+<label>処方日数</label><input id="mDays" type="number" value="28" min="1">
+<button class="btn" onclick="addManual()">登録</button>
+</div>
+<div class="helper">💡 <b>むずかしい操作はありません。</b><br>「薬を登録」→「残薬を入力」→「診察時に見せる」の3ステップです。</div>
+<p class="notice">※この試作は端末内でデータを扱います。お薬手帳QRは、複数枚を受け取ってから連結して解析します。</p>
+</section>
+
+<section class="card">
+<div class="step"><div class="stepno">2</div><div><h2 style="margin:0">残っている薬を入力</h2><div class="sub">手元にある数を入力してください</div></div></div>
+<div id="drugs"></div>
+</section>
+
+<section class="card">
+<div class="step"><div class="stepno">3</div><div><h2 style="margin:0">診察時に見せる</h2><div class="sub">残薬の一覧を大きく表示します</div></div></div>
+<div class="row">
+<button class="btn" onclick="makeReport()">報告画面を作る</button>
+<button class="btn secondary" onclick="clearAll()">全削除</button>
+</div>
+<div id="report" style="margin-top:12px"></div>
+</section>
+</main>
+
+<script>
+let drugs=JSON.parse(localStorage.getItem("zanyaku_drugs_v5")||"[]");
+let scanner=null;
+
+function save(){localStorage.setItem("zanyaku_drugs_v5",JSON.stringify(drugs));render();}
+function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+
+function render(){
+ const el=document.getElementById("drugs");
+ if(!drugs.length){el.innerHTML='<div class="empty">まだ薬が登録されていません。<br>お薬手帳QRを読み取るか、手入力してください。</div>';return}
+ el.innerHTML=drugs.map((d,i)=>{
+   const remain=Number(d.remain||0), perDay=Number(d.freq||1)*Number(d.doseCount||1);
+   const days=perDay?Math.floor(remain/perDay):0;
+   const cls=remain>0?"warn":"ok";
+   return `<div class="drug">
+    <div class="drugtop"><div class="drugname">${esc(d.name)}</div><span class="badge ${cls}">${remain>0?"残薬あり":"残薬なし"}</span></div>
+    <div class="sub">${esc(d.dose||"")} / 1日${d.freq||1}回　${d.date?esc(d.date):""}　${d.days?d.days+"日分":""}</div>
+    <label>手元の残薬（錠・包・個など）</label>
+    <input type="number" min="0" value="${remain}" onchange="updateRemain(${i},this.value)">
+    <div class="sub" style="margin-top:7px">推定残日数：約${days}日</div>
+    <label>残薬の理由</label>
+    <select onchange="updateReason(${i},this.value)">
+      ${["未選択","飲み忘れ","外出時に忘れた","体調不良で飲まなかった","自己判断で中止","飲み方が分からなかった","症状が改善した","入院・受診などで余った","その他"].map(x=>`<option ${d.reason===x?"selected":""}>${x}</option>`).join("")}
+    </select>
+    <button class="smallbtn" style="margin-top:9px" onclick="removeDrug(${i})">この薬を削除</button>
+   </div>`
+ }).join("");
+}
+function updateRemain(i,v){drugs[i].remain=Math.max(0,Number(v));save()}
+function updateReason(i,v){drugs[i].reason=v;save()}
+function removeDrug(i){drugs.splice(i,1);save()}
+function showManual(){document.getElementById("manual").classList.toggle("hidden")}
+function addManual(){
+ const name=document.getElementById("mName").value.trim(); if(!name){alert("薬剤名を入力してください");return}
+ drugs.push({name,dose:document.getElementById("mDose").value||"1錠",freq:Number(document.getElementById("mFreq").value)||1,date:document.getElementById("mDate").value,days:Number(document.getElementById("mDays").value)||0,remain:0,reason:"未選択"});
+ save(); document.getElementById("mName").value="";
+}
+function clearAll(){if(confirm("登録した薬をすべて削除しますか？")){drugs=[];localStorage.removeItem("zanyaku_drugs_v5");render();document.getElementById("report").innerHTML=""}}
+
+
+
+let scannedQRs=new Set(), qrSessionAdded=0;
+let qrChunks=[];
+
+function csvLine(line){
+  const out=[];let cur="",quoted=false;
+  for(let i=0;i<line.length;i++){
+    const ch=line[i];
+    if(ch==='"'){
+      if(quoted&&line[i+1]==='"'){cur+='"';i++;}else quoted=!quoted;
+    }else if(ch===','&&!quoted){out.push(cur.trim());cur="";}else cur+=ch;
+  }
+  out.push(cur.trim());return out;
+}
+function formatJAHISDate(s){
+  const m=String(s||"").match(/^(\d{4})(\d{2})(\d{2})$/);
+  return m?`${m[1]}-${m[2]}-${m[3]}`:(s||"");
+}
+function isJAHISHeader(raw){return /^JAHISTC\d{2},/.test(String(raw||"").replace(/^\ufeff/,""));}
+function firstRecord(raw){
+  const m=String(raw||"").replace(/^\ufeff/,"").match(/(?:^|\r?\n)(\d{1,3}),/);
+  return m?Number(m[1]):null;
+}
+function describeQR(raw){
+  const text=String(raw||"");
+  const header=(text.match(/^JAHISTC\d{2}/)||[])[0]||"—";
+  const recs=[];
+  text.replace(/(?:^|\r?\n)(\d{1,3}),/g,(_,n)=>{if(recs.length<8)recs.push(n);return _;});
+  return {header,first:firstRecord(text),records:recs.join(",")||"—",length:text.length};
+}
+function renderQRDebug(){
+  const box=document.getElementById("qrDebug"),list=document.getElementById("qrDebugList");
+  if(!qrChunks.length){box.classList.add("hidden");list.innerHTML="";return;}
+  box.classList.remove("hidden");
+  list.innerHTML=qrChunks.map((x,i)=>{
+    const d=describeQR(x.raw);
+    const head=esc(x.raw.slice(0,180)).replace(/\r?\n/g,"↵ ");
+    return `<div style="padding:8px 0;border-bottom:1px solid #e2e6e3">
+      <b>QR ${i+1}</b>　${d.header}　${d.length}文字<br>
+      <span class="pill">先頭レコード：${d.first??"なし"}</span>
+      <span class="pill">レコード：${esc(d.records)}</span>
+      <div style="margin-top:5px">${head}${x.raw.length>180?"…":""}</div>
+    </div>`;
+  }).join("");
+}
+function parseJAHIS(raw){
+  const lines=String(raw||"").replace(/\ufeff/g,"").replace(/\r/g,"").split("\n").map(x=>x.trim()).filter(Boolean);
+  const byRP={};let currentDate="";
+  for(const line of lines){
+    if(/^JAHISTC\d{2}/.test(line))continue;
+    const c=csvLine(line),rec=Number(c[0]);
+    if(!Number.isFinite(rec))continue;
+    if(rec===5){currentDate=c[1]||"";continue;}
+    if(rec===201){
+      const rp=c[1]||"",name=c[2]||"",dose=c[3]||"",unit=c[4]||"";
+      if(name)byRP[rp]={name:name.replace(/\s+/g," ").trim(),dose:dose?`${dose}${unit}`:"",doseCount:Number(dose)||1,
+        freq:1,days:0,date:formatJAHISDate(currentDate),remain:0,reason:"未選択"};
+    }else if(rec===301){
+      const rp=c[1]||"";if(byRP[rp]){
+        const usage=c[2]||"";byRP[rp].usage=usage;
+        const qty=Number(c[3]);if(Number.isFinite(qty))byRP[rp].days=qty;
+        const m=usage.match(/(?:1日|一日)\s*(\d+)\s*回/);
+        if(m)byRP[rp].freq=Number(m[1]);
+        else if(/毎食後|毎食前|毎食間/.test(usage))byRP[rp].freq=3;
+        else if(/朝夕|朝晩|朝・夕|朝と夕/.test(usage))byRP[rp].freq=2;
+      }
+    }
+  }
+  return Object.values(byRP);
+}
+function addParsedDrugs(items){
+  let added=0;
+  items.forEach(d=>{
+    if(d.name&&!drugs.some(x=>x.name===d.name&&(x.date||"")===(d.date||""))){drugs.push(d);added++;}
+  });
+  qrSessionAdded+=added;save();return added;
+}
+function combineQRChunks(){
+  if(!qrChunks.length)return "";
+  // JAHISのお薬手帳QRは、今回の実サンプルのように1つのレコード/項目の途中で
+  // QRが分割される場合があるため、QR間に改行を入れず「受信順」で連結する。
+  let combined="";
+  for(const x of qrChunks) combined+=String(x.raw||"");
+  return combined;
+}
+function parseQR(raw){
+  const key=String(raw||"");
+  if(!key||scannedQRs.has(key))return;
+  scannedQRs.add(key);
+  qrChunks.push({raw:key,at:Date.now()});
+  document.getElementById("qrCount").textContent=`読み取ったQR：${qrChunks.length}枚　／　まだ解析中`;
+  renderQRDebug();
+}
+async function startQR(){
+  document.getElementById("readerWrap").classList.remove("hidden");
+  scannedQRs=new Set();qrChunks=[];qrSessionAdded=0;
+  document.getElementById("qrCount").textContent="読み取ったQR：0枚";
+  document.getElementById("qrDebug").classList.add("hidden");
+  if(!window.Html5Qrcode){alert("QR読み取り機能の読み込みに失敗しました。");return}
+  scanner=new Html5Qrcode("reader");
+  try{
+    await scanner.start({facingMode:"environment"},{fps:12,qrbox:{width:260,height:260}},text=>parseQR(text),()=>{});
+  }catch(e){
+    alert("カメラを起動できませんでした。ブラウザのカメラ許可を確認してください。");
+    document.getElementById("readerWrap").classList.add("hidden");
+  }
+}
+async function finishQR(){
+  await stopQR();
+  if(!qrChunks.length){alert("QRを読み取れていません。もう一度お試しください。");return;}
+  const combined=combineQRChunks();
+  const items=parseJAHIS(combined);
+  if(items.length){
+    const added=addParsedDrugs(items);
+    document.getElementById("qrCount").textContent=`QR：${qrChunks.length}枚　✓ 連結して解析完了　／　薬：${items.length}件（新規${added}件）`;
+    renderQRDebug();
+    alert(`${added}件の薬を登録しました。\n（QR ${qrChunks.length}枚を連結して解析）`);
+  }else{
+    document.getElementById("qrCount").textContent=`QR：${qrChunks.length}枚　⚠ 連結後に薬品レコードを見つけられませんでした`;
+    renderQRDebug();
+    alert("QRは読み取れましたが、お薬データを解析できませんでした。下の「QRデータの確認」を見てください。");
+  }
+}
+async function stopQR(){
+  if(scanner){try{await scanner.stop()}catch(e){}try{scanner.clear()}catch(e){}scanner=null;}
+  document.getElementById("readerWrap").classList.add("hidden");
+}
+let stickerStream=null;
+
+async function startStickerCamera(){
+  const wrap=document.getElementById("stickerWrap");
+  wrap.classList.remove("hidden");
+  try{
+    stickerStream=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:{ideal:"environment"},width:{ideal:1280},height:{ideal:720}},
+      audio:false
+    });
+    document.getElementById("stickerVideo").srcObject=stickerStream;
+  }catch(e){
+    alert("カメラを起動できませんでした。ブラウザのカメラ許可を確認してください。");
+    wrap.classList.add("hidden");
+  }
+}
+
+function stopStickerCamera(){
+  if(stickerStream){stickerStream.getTracks().forEach(t=>t.stop());stickerStream=null}
+  document.getElementById("stickerWrap").classList.add("hidden");
+}
+
+
+function preprocessStickerCanvas(sourceCanvas){
+  const scale=2;
+  const c=document.createElement("canvas");
+  c.width=sourceCanvas.width*scale;c.height=sourceCanvas.height*scale;
+  const ctx=c.getContext("2d",{willReadFrequently:true});
+  ctx.drawImage(sourceCanvas,0,0,c.width,c.height);
+  const img=ctx.getImageData(0,0,c.width,c.height),d=img.data;
+  for(let i=0;i<d.length;i+=4){
+    const gray=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];
+    const boosted=Math.max(0,Math.min(255,(gray-128)*1.45+128));
+    d[i]=d[i+1]=d[i+2]=boosted;
+  }
+  ctx.putImageData(img,0,0);
+  return c;
+}
+async function runStickerOCR(canvas){
+  const processed=preprocessStickerCanvas(canvas);
+  const results=[];
+  for(const psm of ["6","11"]){
+    const r=await Tesseract.recognize(processed,"jpn+eng",{
+      logger:()=>{},
+      tessedit_pageseg_mode:psm,
+      preserve_interword_spaces:"1"
+    });
+    results.push(r.data.text||"");
+  }
+  return results.join("\n");
+}
+async function captureSticker(){
+  const video=document.getElementById("stickerVideo"),canvas=document.getElementById("stickerCanvas");
+  if(!video.videoWidth){alert("カメラ映像が準備できていません。");return}
+  canvas.width=video.videoWidth;canvas.height=video.videoHeight;
+  canvas.getContext("2d").drawImage(video,0,0,canvas.width,canvas.height);
+  const result=document.getElementById("ocrResult");result.classList.remove("hidden");
+  result.innerHTML='<div class="ocrbox"><b>🔎 シール全体を解析しています…</b><p class="notice">少し時間がかかることがあります。</p></div>';
+  try{showOCRConfirmation(await runStickerOCR(canvas))}
+  catch(e){result.innerHTML='<div class="ocrbox"><b>読み取りに失敗しました</b><p class="notice">明るい場所で、シール全体が入るように撮影してください。写真アプリから画像を選んで試すこともできます。</p></div>'}
+}
+async function readStickerFile(input){
+  const file=input.files&&input.files[0];if(!file)return;
+  const result=document.getElementById("ocrResult");result.classList.remove("hidden");
+  result.innerHTML='<div class="ocrbox"><b>🔎 写真を解析しています…</b><p class="notice">少し時間がかかることがあります。</p></div>';
+  try{
+    const img=await new Promise((resolve,reject)=>{
+      const u=URL.createObjectURL(file),im=new Image();
+      im.onload=()=>{URL.revokeObjectURL(u);resolve(im)};im.onerror=reject;im.src=u;
+    });
+    const c=document.createElement("canvas");c.width=img.naturalWidth;c.height=img.naturalHeight;
+    c.getContext("2d").drawImage(img,0,0);
+    showOCRConfirmation(await runStickerOCR(c));
+  }catch(e){
+    result.innerHTML='<div class="ocrbox"><b>写真を読み取れませんでした</b><p class="notice">文字がはっきり写った写真を選んでください。</p></div>';
+  }
+}
+
+function normalizeOCRText(text){
+  return text.replace(/\r/g,"").split("\n").map(s=>s.trim()).filter(Boolean).join("\n");
+}
+
+
+
+function guessDrugNames(text){
+  const lines=normalizeOCRText(text).split("\n").map(x=>x.trim()).filter(Boolean);
+  const hits=[];
+  const dosageWords=/(錠|カプセル|散|顆粒|細粒|ドライシロップ|液|シロップ|軟膏|クリーム|ローション|貼付|テープ|点眼|点鼻|吸入|注射|注|mg|ｍｇ|μg|％|%)$/i;
+  const bad=/^(用法|用量|服用|処方|調剤|薬局|病院|医療|患者|氏名|住所|電話|保険|合計|日数|日分|調剤日|発行日)/;
+  for(let line of lines){
+    line=line.replace(/^[・●○■□◆◇\-\s]+/,"").replace(/\s{2,}/g," ").trim();
+    if(line.length<2||line.length>100||bad.test(line))continue;
+    if(dosageWords.test(line)||/(錠|カプセル|散|顆粒|軟膏|クリーム|貼付|点眼|吸入|注射)/.test(line)){
+      line=line.split(/(?:1日|一日)\s*\d+\s*回/)[0].trim();
+      if(line.length>=2&&!hits.includes(line))hits.push(line);
+    }
+  }
+  return hits;
+}
+
+function showOCRConfirmation(text){
+ const clean=normalizeOCRText(text),names=guessDrugNames(clean),days=guessDays(clean),freq=guessFreq(clean),result=document.getElementById("ocrResult");
+ result.classList.remove("hidden");
+ if(!names.length){
+  result.innerHTML=`<div class="ocrbox"><h3 style="margin:0 0 8px">🔎 読み取り結果を確認</h3>
+  <p class="notice">薬剤名を自動で特定できませんでした。読み取った文字を確認して、薬剤名を入力してください。</p>
+  <label>薬剤名</label><input id="ocrName" placeholder="薬の名前を入力">
+  <button class="btn" onclick="registerSingleOCRDrug()">この薬を登録</button>
+  <label>OCRで読み取った全文</label><div class="ocrraw">${esc(clean||"（文字を認識できませんでした）")}</div></div>`;return;
+ }
+ result.innerHTML=`<div class="ocrbox"><h3 style="margin:0 0 8px">📋 読み取り結果を確認</h3>
+ <p class="notice"><b>${names.length}個</b>の薬剤候補を見つけました。登録する薬にチェックを入れてください。</p>
+ <div id="ocrCandidates">${names.map((n,i)=>`<label style="display:flex;gap:10px;align-items:center;background:#fff;border:1px solid #ddd;border-radius:10px;padding:11px;margin:8px 0;font-size:17px">
+ <input type="checkbox" id="ocrDrug${i}" checked style="width:25px;height:25px;min-height:25px"><span>${esc(n)}</span></label>`).join("")}</div>
+ <div class="row"><div><label>1日回数（推定）</label><input id="ocrFreq" type="number" min="1" value="${freq}"></div>
+ <div><label>処方日数（推定）</label><input id="ocrDays" type="number" min="1" value="${days}"></div></div>
+ <label>OCRで読み取った全文</label><div class="ocrraw">${esc(clean||"（文字を認識できませんでした）")}</div>
+ <p class="notice">⚠️ OCRは誤認識することがあります。薬剤名を必ず確認してから登録してください。</p>
+ <button class="btn" onclick='registerOCRDrugs(${JSON.stringify(names)})'>☑️ 選択した薬をまとめて登録</button></div>`;
+}
+function registerOCRDrugs(names){
+ const freq=Number(document.getElementById("ocrFreq").value)||1,days=Number(document.getElementById("ocrDays").value)||0;let added=0;
+ names.forEach((name,i)=>{const cb=document.getElementById("ocrDrug"+i);if(cb&&cb.checked&&name&&!drugs.some(d=>d.name===name)){drugs.push({name,dose:"要確認",freq,days,date:"",remain:0,reason:"未選択"});added++}});
+ save();document.getElementById("ocrResult").innerHTML=`<div class="ocrbox"><b>✅ ${added}件を登録しました</b><p class="notice">残薬数を入力してください。</p></div>`;stopStickerCamera();
+}
+function registerSingleOCRDrug(){
+ const name=document.getElementById("ocrName").value.trim();if(!name){alert("薬剤名を入力してください");return}
+ drugs.push({name,dose:"要確認",freq:1,days:0,date:"",remain:0,reason:"未選択"});save();
+ document.getElementById("ocrResult").innerHTML='<div class="ocrbox"><b>✅ 登録しました</b><p class="notice">残薬数を入力してください。</p></div>';stopStickerCamera();
+}
+function makeReport(){
+ if(!drugs.length){alert("先に薬を登録してください");return}
+ const date=new Date().toLocaleDateString("ja-JP");
+ const rows=drugs.map(d=>{
+   const remain=Number(d.remain||0), perDay=Number(d.freq||1)*Number(d.doseCount||1), days=perDay?Math.floor(remain/perDay):0;
+   return `<div class="line"><div><b>${esc(d.name)}</b><div class="sub">${esc(d.dose||"")}・1日${d.freq||1}回</div></div><div style="text-align:right"><b>${remain}</b> 残<br><span class="sub">約${days}日分</span></div></div>`
+ }).join("");
+ document.getElementById("report").innerHTML=`<div class="report"><h3>診察時 残薬報告</h3><div class="sub">作成日：${date}</div>${rows}<p class="notice">※残薬数は患者さんの自己申告です。処方変更・中止などは医師または薬剤師へご相談ください。</p><button class="btn secondary" onclick="saveReportImage()">📸 写真として保存する</button>
+<button class="btn secondary" onclick="shareReportImage()">📤 写真を共有する</button>
+<button class="btn secondary" onclick="window.print()">🖨️ 印刷・PDF保存</button>
+<p class="notice">写真保存は、iPhone・Androidの機種によって「写真に保存」「画像を保存」「共有」など表示が異なります。</p></div>`;
+}
+render();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode" defer></script>
+</body>
+</html>
